@@ -15,6 +15,7 @@ const { name, author } = require(join(__dirname, './package.json'));
 const { say } = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
+// Display bot name
 say('The mego\nBot', {
   font: 'chrome',
   align: 'center',
@@ -27,6 +28,7 @@ say(`Bot mego`, {
 });
 
 let isRunning = false;
+
 /**
  * Start a js file
  * @param {String} file `path/to/file`
@@ -40,6 +42,7 @@ function start(file) {
     exec: args[0],
     args: args.slice(1),
   });
+
   const p = fork();
   p.on('message', (data) => {
     console.log('[RECIBIDO]', data);
@@ -54,6 +57,7 @@ function start(file) {
         break;
     }
   });
+
   p.on('exit', (_, code) => {
     isRunning = false;
     console.error('[ ℹ️ ] حدث خطأ غير متوقع:', code);
@@ -68,6 +72,7 @@ function start(file) {
       process.exit();
     }
   });
+
   const opts = new Object(
     yargs(process.argv.slice(2)).exitProcess(false).parse()
   );
@@ -80,8 +85,7 @@ function start(file) {
   }
 }
 
-// Get DataBase >>
-// حذف ملف database.json إذا كان موجودًا
+// Delete database.json if it exists
 try {
   fs.unlinkSync('database.json');
   console.log('database.json file deleted successfully.');
@@ -89,20 +93,23 @@ try {
   console.error('Error deleting database.json file:', err);
 }
 
-// Load Firebase credentials from environment variable
+// Load Firebase credentials from environment variable (set in GitHub Secrets)
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY); // Loaded from GitHub Secret (FIREBASE_KEY)
+if (!serviceAccount) {
+    throw new Error("FIREBASE_KEY is not defined. Please set it in GitHub Secrets.");
+}
 const id = serviceAccount.project_id;
 
+// Initialize Firebase Admin SDK
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   databaseURL: `https://${id}-default-rtdb.firebaseio.com`,
 });
 
-// قراءة البيانات من Firebase
+// Read data from Firebase
 const dbRef = firebaseAdmin.database().ref('/');
 dbRef.once('value', (snapshot) => {
   const data = snapshot.val();
-
   const replacedData = replaceInvalidKeys(data);
 
   fs.writeFileSync('database.json', JSON.stringify(replacedData, null, 4), 'utf8');
@@ -123,6 +130,7 @@ function replaceInvalidKeys(obj) {
   return newObj;
 }
 
+// Start the main process after a delay
 setTimeout(() => {
   console.log('The next codes are executed after a delay of 26 seconds...');
   start('main.js');
