@@ -57,10 +57,6 @@ global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(op
 
 import firebaseAdmin from 'firebase-admin';
 import fs from 'fs';
-import dotenv from 'dotenv';
-
-// Load environment variables (including the Firebase key)
-dotenv.config();
 
 // save database >>
 function loadDataAndReplaceInvalidKeys() {
