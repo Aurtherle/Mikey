@@ -55,10 +55,105 @@ global.prefix = new RegExp('^[' + (opts['prefix'] || '/i!#$%+£¢€¥^°=¶∆�
 global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(opts['db']) : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`));
 
 
+// Load environment variables
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { join, dirname } from 'path';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import { setupMaster, fork } from 'cluster';
+import { watchFile, unwatchFile } from 'fs';
+import cfonts from 'cfonts';
+import { createInterface } from 'readline';
+import yargs from 'yargs';
+import fs from 'fs';
+import firebaseAdmin from 'firebase-admin';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(__dirname);
+const { name, author } = require(join(__dirname, './package.json'));
+const { say } = cfonts;
+const rl = createInterface(process.stdin, process.stdout);
+
+say('The mego\nBot', {
+  font: 'chrome',
+  align: 'center',
+  gradient: ['red', 'magenta'],
+});
+say(`Bot mego`, {
+  font: 'console',
+  align: 'center',
+  gradient: ['red', 'magenta'],
+});
+
+let isRunning = false;
+/**
+ * Start a js file
+ * @param {String} file `path/to/file`
+ */
+function start(file) {
+  if (isRunning) return;
+  isRunning = true;
+  const args = [join(__dirname, file), ...process.argv.slice(2)];
+
+  setupMaster({
+    exec: args[0],
+    args: args.slice(1),
+  });
+  const p = fork();
+  p.on('message', (data) => {
+    console.log('[RECIBIDO]', data);
+    switch (data) {
+      case 'reset':
+        p.process.kill();
+        isRunning = false;
+        start.apply(this, arguments);
+        break;
+      case 'uptime':
+        p.send(process.uptime());
+        break;
+    }
+  });
+  p.on('exit', (_, code) => {
+    isRunning = false;
+    console.error('[ ℹ️ ] حدث خطأ غير متوقع:', code);
+
+    p.process.kill();
+    isRunning = false;
+    start.apply(this, arguments);
+
+    if (process.env.pm_id) {
+      process.exit(1);
+    } else {
+      process.exit();
+    }
+  });
+  const opts = new Object(
+    yargs(process.argv.slice(2)).exitProcess(false).parse()
+  );
+  if (!opts['test']) {
+    if (!rl.listenerCount()) {
+      rl.on('line', (line) => {
+        p.emit('message', line.trim());
+      });
+    }
+  }
+}
+
+// Get DataBase >>
+// حذف ملف database.json إذا كان موجودًا
+try {
+  fs.unlinkSync('database.json');
+  console.log('database.json file deleted successfully.');
+} catch (err) {
+  console.error('Error deleting database.json file:', err);
+}
+
 import firebaseAdmin from 'firebase-admin';
 import fs from 'fs';
 
-// save database >>
+// Save database >>
 function loadDataAndReplaceInvalidKeys() {
     const data = JSON.parse(fs.readFileSync('database.json', 'utf8')); // Read data from database.json
     return replaceInvalidKeys(data);
@@ -78,8 +173,11 @@ function replaceInvalidKeys(obj) {
     return newObj;
 }
 
-// Load Firebase credentials from environment variable
+// Load Firebase credentials from environment variable (set in GitHub Secrets)
 const serviceAccount = JSON.parse(process.env.FIREBASE_KEY); // Load from GitHub Secret
+if (!serviceAccount) {
+    throw new Error("FIREBASE_KEY is not defined. Please set it in GitHub Secrets.");
+}
 const id = serviceAccount.project_id;
 
 firebaseAdmin.initializeApp({
