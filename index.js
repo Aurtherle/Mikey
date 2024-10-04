@@ -89,7 +89,7 @@ try {
     console.error('Error deleting database.json file:', err);
 }
 
-const serviceAccount = JSON.parse(fs.readFileSync('./firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
+const serviceAccount = JSON.parse(fs.readFileSync('./.gitignore/firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
 const id = serviceAccount.project_id
 firebaseAdmin.initializeApp({
     credential: firebaseAdmin.credential.cert(serviceAccount),
