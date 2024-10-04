@@ -1,48 +1,45 @@
-import { join, dirname } from 'path';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import { setupMaster, fork } from 'cluster';
-import { watchFile, unwatchFile } from 'fs';
+console.log('[ 💠 ] جاري التجهيز...');
+import {join, dirname} from 'path';
+import {createRequire} from 'module';
+import {fileURLToPath} from 'url';
+import {setupMaster, fork} from 'cluster';
+import {watchFile, unwatchFile} from 'fs';
 import cfonts from 'cfonts';
-import { createInterface } from 'readline';
+import {createInterface} from 'readline';
 import yargs from 'yargs';
-import fs from 'fs';
-import firebaseAdmin from 'firebase-admin';
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(__dirname);
-const { name, author } = require(join(__dirname, './package.json'));
-const { say } = cfonts;
+const {name, author} = require(join(__dirname, './package.json'));
+const {say} = cfonts;
 const rl = createInterface(process.stdin, process.stdout);
 
-// Display bot name
 say('The mego\nBot', {
   font: 'chrome',
   align: 'center',
-  gradient: ['red', 'magenta'],
-});
+  gradient: ['red', 'magenta']});
 say(`Bot mego`, {
   font: 'console',
   align: 'center',
-  gradient: ['red', 'magenta'],
-});
+  gradient: ['red', 'magenta']});
 
 let isRunning = false;
-
 /**
- * Start a js file
- * @param {String} file `path/to/file`
- */
+* Start a js file
+* @param {String} file `path/to/file`
+*/
 function start(file) {
   if (isRunning) return;
   isRunning = true;
   const args = [join(__dirname, file), ...process.argv.slice(2)];
 
+  /** say('[ ℹ️ ] Escanea el código QR o introduce el código de emparejamiento en WhatsApp.', {
+    font: 'console',
+    align: 'center',
+    gradient: ['red', 'magenta']}); **/
+
   setupMaster({
     exec: args[0],
-    args: args.slice(1),
-  });
-
+    args: args.slice(1)});
   const p = fork();
   p.on('message', (data) => {
     console.log('[RECIBIDO]', data);
@@ -57,7 +54,6 @@ function start(file) {
         break;
     }
   });
-
   p.on('exit', (_, code) => {
     isRunning = false;
     console.error('[ ℹ️ ] حدث خطأ غير متوقع:', code);
@@ -72,10 +68,7 @@ function start(file) {
       process.exit();
     }
   });
-
-  const opts = new Object(
-    yargs(process.argv.slice(2)).exitProcess(false).parse()
-  );
+  const opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse());
   if (!opts['test']) {
     if (!rl.listenerCount()) {
       rl.on('line', (line) => {
@@ -84,54 +77,4 @@ function start(file) {
     }
   }
 }
-
-// Delete database.json if it exists
-try {
-  fs.unlinkSync('database.json');
-  console.log('database.json file deleted successfully.');
-} catch (err) {
-  console.error('Error deleting database.json file:', err);
-}
-
-// Load Firebase credentials from environment variable (set in GitHub Secrets)
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY); // Loaded from GitHub Secret (FIREBASE_KEY)
-if (!serviceAccount) {
-    throw new Error("FIREBASE_KEY is not defined. Please set it in GitHub Secrets.");
-}
-const id = serviceAccount.project_id;
-
-// Initialize Firebase Admin SDK
-firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount),
-  databaseURL: `https://${id}-default-rtdb.firebaseio.com`,
-});
-
-// Read data from Firebase
-const dbRef = firebaseAdmin.database().ref('/');
-dbRef.once('value', (snapshot) => {
-  const data = snapshot.val();
-  const replacedData = replaceInvalidKeys(data);
-
-  fs.writeFileSync('database.json', JSON.stringify(replacedData, null, 4), 'utf8');
-  console.log('Data saved to database.json file successfully.');
-});
-
-function replaceInvalidKeys(obj) {
-  const newObj = {};
-  for (const key in obj) {
-    if (Object.hasOwnProperty.call(obj, key)) {
-      const newKey = key.replace(/,/g, '.');
-      newObj[newKey] = obj[key];
-      if (typeof obj[key] === 'object') {
-        newObj[newKey] = replaceInvalidKeys(obj[key]);
-      }
-    }
-  }
-  return newObj;
-}
-
-// Start the main process after a delay
-setTimeout(() => {
-  console.log('The next codes are executed after a delay of 26 seconds...');
-  start('main.js');
-}, 26000);
+start('main.js');
