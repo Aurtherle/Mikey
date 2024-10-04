@@ -56,10 +56,15 @@ global.db = new Low(/https?:\/\//.test(opts['db'] || '') ? new cloudDBAdapter(op
 
 
 import firebaseAdmin from 'firebase-admin';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+// Load environment variables (including the Firebase key)
+dotenv.config();
 
 // save database >>
 function loadDataAndReplaceInvalidKeys() {
-    const data = JSON.parse(readFileSync('database.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('database.json', 'utf8')); // Read data from database.json
     return replaceInvalidKeys(data);
 }
 
@@ -67,7 +72,7 @@ function replaceInvalidKeys(obj) {
     const newObj = {};
     for (let key in obj) {
         if (obj.hasOwnProperty(key)) {
-            const newKey = key.replace(/\./g, ','); 
+            const newKey = key.replace(/\./g, ','); // Replace '.' with ','
             newObj[newKey] = obj[key];
             if (typeof obj[key] === 'object') {
                 newObj[newKey] = replaceInvalidKeys(obj[key]);
@@ -77,21 +82,23 @@ function replaceInvalidKeys(obj) {
     return newObj;
 }
 
-const serviceAccount = JSON.parse(readFileSync('./.gitignore/firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
-const id = serviceAccount.project_id
+// Load Firebase credentials from environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY); // Load from GitHub Secret
+const id = serviceAccount.project_id;
+
 firebaseAdmin.initializeApp({
     credential: firebaseAdmin.credential.cert(serviceAccount),
     databaseURL: `https://${id}-default-rtdb.firebaseio.com`
 });
 
 async function saveDataToFirebase() {
-    const dbRef = firebaseAdmin.database().ref('/');
-    const replacedData = loadDataAndReplaceInvalidKeys();
-    await dbRef.set(replacedData);
-    console.log('Done Save database << 200')
+    const dbRef = firebaseAdmin.database().ref('/'); // Firebase database reference
+    const replacedData = loadDataAndReplaceInvalidKeys(); // Replace invalid keys
+    await dbRef.set(replacedData); // Save data to Firebase
+    console.log('Done Save database << 200');
 }
 
-// تنفيذ الكود كل دقيقة
+// Execute the saveDataToFirebase function every minute
 setInterval(saveDataToFirebase, 60000);
 
 global.DATABASE = global.db; 
