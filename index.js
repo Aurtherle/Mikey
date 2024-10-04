@@ -89,14 +89,16 @@ try {
     console.error('Error deleting database.json file:', err);
 }
 
-const serviceAccount = JSON.parse(fs.readFileSync('./.gitignore/firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
-const id = serviceAccount.project_id
+// Parse Firebase service account key from GitHub Secret (stored in the FIREBASE_KEY environment variable)
+const firebaseKey = JSON.parse(process.env.FIREBASE_KEY); // Ensure this secret is set in GitHub Secrets
+const id = firebaseKey.project_id;
+
 firebaseAdmin.initializeApp({
-    credential: firebaseAdmin.credential.cert(serviceAccount),
+    credential: firebaseAdmin.credential.cert(firebaseKey),
     databaseURL: `https://${id}-default-rtdb.firebaseio.com`
 });
 
-// قراءة البيانات من Firebase
+// Read data from Firebase
 const dbRef = firebaseAdmin.database().ref('/');
 dbRef.once('value', (snapshot) => {
     const data = snapshot.val();
@@ -107,11 +109,12 @@ dbRef.once('value', (snapshot) => {
     console.log('Data saved to database.json file successfully.');
 });
 
+// Function to replace invalid keys
 function replaceInvalidKeys(obj) {
     const newObj = {};
     for (const key in obj) {
         if (Object.hasOwnProperty.call(obj, key)) {
-            const newKey = key.replace(/,/g, '.');
+            const newKey = key.replace(/,/g, '.'); // Replace invalid commas with dots
             newObj[newKey] = obj[key];
             if (typeof obj[key] === 'object') {
                 newObj[newKey] = replaceInvalidKeys(obj[key]);
