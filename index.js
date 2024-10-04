@@ -1,7 +1,3 @@
-// Load environment variables
-import dotenv from 'dotenv';
-dotenv.config();
-
 import { join, dirname } from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
