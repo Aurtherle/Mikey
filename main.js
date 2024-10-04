@@ -77,7 +77,7 @@ function replaceInvalidKeys(obj) {
     return newObj;
 }
 
-const serviceAccount = JSON.parse(readFileSync('./firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
+const serviceAccount = JSON.parse(readFileSync('./.gitignore/firebase-key.json', 'utf8')); // تحميل المفتاح كـ JSON
 const id = serviceAccount.project_id
 firebaseAdmin.initializeApp({
     credential: firebaseAdmin.credential.cert(serviceAccount),
